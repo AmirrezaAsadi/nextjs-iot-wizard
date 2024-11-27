@@ -82,7 +82,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="security">Security System</Label>
+                    <Label htmlFor="security">Security Systems</Label>
                     <Switch 
                       id="security"
                       checked={deviceStatus.security}
