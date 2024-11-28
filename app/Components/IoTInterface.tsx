@@ -7,16 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import deviceData from "./deviceData";
+import { deviceData } from "./deviceData";
 import { Rule, Person, Device, Location, LocationType } from "../types";
 import { LocationManager } from "./LocationManager";
 import { RuleManager } from "./RuleManager";
 import { PeopleManager } from "./PeopleManager";
 import { DeviceManager } from "./DeviceManager";
 
-interface DeviceState {
-  [key: string]: string | number | boolean;
-}
+type DeviceStateValue = string | number | boolean;
+type DeviceStates = Record<string, DeviceStateValue>;
 
 export default function IoTInterface() {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -39,6 +38,7 @@ export default function IoTInterface() {
 
   const locationTypes: LocationType[] = ["Residential", "Office", "Retail", "Factory", "Farm"];
 
+
   const addLocation = (newLocation: Location) => {
     setLocations([...locations, newLocation]);
   };
@@ -51,16 +51,20 @@ export default function IoTInterface() {
     const newDevice = { ...device, location };
     setInstalledDevices([...installedDevices, newDevice]);
   };
+
   const removeDevice = (deviceToRemove: Device) => {
-    setInstalledDevices(prevDevices => 
-      prevDevices.filter(device => 
+    setInstalledDevices(prev => 
+      prev.filter(device => 
         !(device.name === deviceToRemove.name && device.location === deviceToRemove.location)
       )
     );
   };
 
   const generateSystemState = async () => {
-    if (!apiKey) return;
+    if (!apiKey) {
+      setSystemResponse("Please enter an OpenAI API key first.");
+      return;
+    }
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -74,34 +78,61 @@ export default function IoTInterface() {
           messages: [
             {
               role: "system",
-              content: "You are an IoT system assistant that generates realistic sensor data and device states."
+              content: `You are an IoT system assistant that generates realistic sensor data and device states.
+                       Your response should be a valid JSON object where keys are device names and values are appropriate readings.
+                       For boolean devices, use true/false. For numeric devices, use numbers. For text devices, use strings.`
             },
             {
               role: "user",
-              content: `Generate appropriate sensor values and states for the following devices: ${JSON.stringify(installedDevices)}
-                       Consider: Locations: ${JSON.stringify(locations)}
+              content: `Generate appropriate sensor values and states for these devices: ${JSON.stringify(installedDevices)}
+                       Consider the following context:
+                       Locations: ${JSON.stringify(locations)}
                        People: ${JSON.stringify(people)}
-                       Active Rules: ${JSON.stringify(activeRules)}`
+                       Active Rules: ${JSON.stringify(activeRules)}
+                       
+                       Respond with a JSON object only, no additional text.
+                       Example format: {"Device1": 23.5, "Device2": true, "Device3": "active"}`
             }
-          ]
+          ],
+          temperature: 0.7,
+          max_tokens: 500
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const data = await response.json();
-      const parsedStates = JSON.parse(data.choices[0].message.content) as DeviceState;
-      updateDeviceStates(parsedStates);
-      setSystemResponse(data.choices[0].message.content);
+      
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error("Invalid response format from API");
+      }
+
+      try {
+        const content = data.choices[0].message.content.trim();
+        console.log("API Response:", content);
+        
+        const parsedStates = JSON.parse(content) as DeviceStates;
+        updateDeviceStates(parsedStates);
+        setSystemResponse("Successfully updated device states");
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        setSystemResponse("Error: Could not parse the response from OpenAI. Response format was invalid.");
+      }
     } catch (error) {
-      console.error("Error generating system state:", error);
-      setSystemResponse("Error generating system state. Please check your API key and try again.");
+      console.error("API Error:", error);
+      setSystemResponse(`Error: ${error instanceof Error ? error.message : "Failed to generate system state"}`);
     }
   };
 
-  const updateDeviceStates = (newStates: DeviceState) => {
+  const updateDeviceStates = (newStates: DeviceStates) => {
     setInstalledDevices(prevDevices => 
       prevDevices.map(device => ({
         ...device,
-        currentValue: newStates[device.name]
+        currentValue: newStates[device.name] !== undefined 
+          ? newStates[device.name] 
+          : device.currentValue
       }))
     );
   };
@@ -132,12 +163,12 @@ export default function IoTInterface() {
 
           <TabsContent value="devices">
           <DeviceManager
-  deviceCategories={deviceData}
-  locations={locations}
-  installedDevices={installedDevices}
-  onInstallDevice={installDevice}
-  onRemoveDevice={removeDevice}
-/>
+      deviceCategories={deviceData}
+      locations={locations}
+      installedDevices={installedDevices}
+      onInstallDevice={installDevice}
+      onRemoveDevice={removeDevice}
+    />
           </TabsContent>
 
           <TabsContent value="people">

@@ -1,5 +1,6 @@
 // types.ts
 
+export type LocationType = "Residential" | "Office" | "Retail" | "Factory" | "Farm";
 export type DeviceType = "sensor" | "actuator";
 
 export interface Device {
@@ -15,23 +16,21 @@ export interface Device {
   };
   features: string[];
   location?: string;
-  currentValue?: unknown;
+  currentValue?: string | number | boolean;
   category?: string;
   isCustom?: boolean;
 }
-  
-  export interface Category {
-    category: string;
-    devices: Device[];
-  }
-  
-  export type LocationType = "Residential" | "Office" | "Retail" | "Factory" | "Farm";
-  
-  export interface Location {
-    name: string;
-    type: LocationType;
-    parent?: string;
-  }
+
+export interface Category {
+  category: string;
+  devices: Device[];
+}
+
+export interface Location {
+  name: string;
+  type: LocationType;
+  parent?: string;
+}
   
   export interface Person {
     name: string;

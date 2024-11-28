@@ -1,88 +1,292 @@
 // deviceData.ts
-import { Category } from "../types";
+import { Category, DeviceType } from '../types';
 
-const deviceData: Category[] = [
+interface RawDevice {
+  name: string;
+  description: string;
+  dataType: string;
+  unit?: string;
+  interface: {
+    display: string | boolean;
+    app: string | boolean;
+    voice: string | boolean;
+  };
+  features: string[];
+}
+
+interface RawCategory {
+  category: string;
+  devices: RawDevice[];
+}
+
+
+
+
+const processDeviceData = (data: RawCategory[]): Category[] => {
+  return data.map(category => ({
+    category: category.category,
+    devices: category.devices.map(device => ({
+      ...device,
+      type: determineDeviceType(device, category.category)
+    }))
+  }));
+};
+
+const determineDeviceType = (device: RawDevice, category: string): DeviceType => {
+  if (
+    category.includes('Sensors') || 
+    device.name.includes('Sensor') || 
+    device.name.includes('Monitor') || 
+    device.name.includes('Detector')
+  ) {
+    return 'sensor';
+  }
+  
+  if (
+    category === 'Actuators and Controllers' ||
+    category === 'Reality-Altering Devices' ||
+    device.name.includes('Controller') ||
+    device.name.includes('Generator') ||
+    device.name.includes('Printer') ||
+    device.name.includes('Manipulator')
+  ) {
+    return 'actuator';
+  }
+  
+  return 'sensor';
+};
+
+
+const rawDeviceData: RawCategory[] = [
   {
-    category: "Environmental Sensors",
-    devices: [
+    "category": "Environmental Sensors",
+    "devices": [
       {
-        name: "Temperature Sensor",
-        description: "Measures ambient temperature",
-        type: "sensor",
-        dataType: "Number",
-        unit: "degrees Celsius",
-        interface: {
-          display: "Numeric",
-          app: "Graph",
-          voice: false
+        "name": "Temperature Sensor",
+        "description": "Measures ambient temperature",
+        "dataType": "Number",
+        "unit": "degrees Celsius",
+        "interface": {
+          "display": "Numeric",
+          "app": "Graph",
+          "voice": false
         },
-        features: [
+        "features": [
           "Alarms for high/low thresholds"
         ]
       },
       {
-        name: "Humidity Sensor",
-        description: "Measures relative humidity",
-        type: "sensor",
-        dataType: "Number",
-        unit: "percentage",
-        interface: {
-          display: "Numeric",
-          app: "Graph",
-          voice: false
+        "name": "Humidity Sensor",
+        "description": "Measures relative humidity",
+        "dataType": "Number",
+        "unit": "percentage",
+        "interface": {
+          "display": "Numeric",
+          "app": "Graph",
+          "voice": false
         },
-        features: [
+        "features": [
           "Alarms for high/low thresholds"
         ]
       },
       {
-        name: "Air Quality Sensor",
-        description: "Measures various pollutants (e.g., CO2, VOCs, PM2.5)",
-        type: "sensor",
-        dataType: "Number",
-        unit: "ppm or µg/m³",
-        interface: {
-          display: "Numeric",
-          app: true,
-          voice: false
+        "name": "Air Quality Sensor",
+        "description": "Measures various pollutants (e.g., CO2, VOCs, PM2.5)",
+        "dataType": "Number",
+        "unit": "ppm or µg/m³",
+        "interface": {
+          "display": "Numeric",
+          "app": true,
+          "voice": false
         },
-        features: [
+        "features": [
           "Alarms",
           "Recommendations for improving air quality"
+        ]
+      },
+      {
+        "name": "Light Sensor",
+        "description": "Measures light intensity",
+        "dataType": "Number",
+        "unit": "lux",
+        "interface": {
+          "display": "Numeric",
+          "app": "Graph",
+          "voice": false
+        },
+        "features": [
+          "Ambient light-based device control"
+        ]
+      },
+      {
+        "name": "Sound Sensor",
+        "description": "Detects sound levels",
+        "dataType": "Number",
+        "unit": "decibels",
+        "interface": {
+          "display": "Numeric",
+          "app": true,
+          "voice": false
+        },
+        "features": [
+          "Alarms for high noise levels"
         ]
       }
     ]
   },
   {
-    category: "Actuators and Controllers",
-    devices: [
+    "category": "Motion and Position Sensors",
+    "devices": [
       {
-        name: "Smart Plug",
-        description: "Controls power to connected devices",
-        type: "actuator",
-        dataType: "Boolean",
-        interface: {
-          display: "Physical button",
-          app: true,
-          voice: true
+        "name": "PIR Motion Sensor",
+        "description": "Detects motion in its field of view",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "LED",
+          "app": "Notifications",
+          "voice": false
         },
-        features: [
+        "features": [
+          "Configurable sensitivity",
+          "Delay time"
+        ]
+      },
+      {
+        "name": "Accelerometer",
+        "description": "Measures acceleration and tilt",
+        "dataType": "Number",
+        "unit": "g-force",
+        "interface": {
+          "display": false,
+          "app": "Graphs and animations",
+          "voice": false
+        },
+        "features": [
+          "Gesture recognition",
+          "Fall detection"
+        ]
+      },
+      {
+        "name": "Gyroscope",
+        "description": "Measures angular velocity and orientation",
+        "dataType": "Number",
+        "unit": "degrees per second",
+        "interface": {
+          "display": false,
+          "app": "3D model",
+          "voice": false
+        },
+        "features": [
+          "Gesture control",
+          "Gaming applications"
+        ]
+      },
+      {
+        "name": "GPS Module",
+        "description": "Provides location data",
+        "dataType": "String",
+        "interface": {
+          "display": false,
+          "app": "Map",
+          "voice": false
+        },
+        "features": [
+          "Geofencing",
+          "Route tracking",
+          "Location sharing"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Utility Sensors",
+    "devices": [
+      {
+        "name": "Smoke Detector",
+        "description": "Detects smoke and fire",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "LED",
+          "app": "Notifications",
+          "voice": "Alarm"
+        },
+        "features": [
+          "Hush button",
+          "Low battery alerts"
+        ]
+      },
+      {
+        "name": "Water Leak Sensor",
+        "description": "Detects the presence of water",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "LED",
+          "app": "Notifications",
+          "voice": "Alarm"
+        },
+        "features": [
+          "Automatic water shutoff valve control"
+        ]
+      },
+      {
+        "name": "Door/Window Sensor",
+        "description": "Detects if a door or window is open or closed",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "LED",
+          "app": "Open/closed status",
+          "voice": false
+        },
+        "features": [
+          "Integration with security system"
+        ]
+      },
+      {
+        "name": "Smart Meter",
+        "description": "Measures electricity, gas, or water consumption",
+        "dataType": "Number",
+        "unit": "kWh, m³",
+        "interface": {
+          "display": "LCD",
+          "app": "Usage graphs and analytics",
+          "voice": false
+        },
+        "features": [
+          "Time-of-use rates",
+          "Bill prediction",
+          "Energy saving tips"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Actuators and Controllers",
+    "devices": [
+      {
+        "name": "Smart Plug",
+        "description": "Controls power to connected devices",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "Physical button",
+          "app": true,
+          "voice": true
+        },
+        "features": [
           "Energy monitoring",
           "Scheduling",
           "Scenes"
         ]
       },
       {
-        name: "Smart Light Bulb",
-        description: "Controls light color and brightness",
-        type: "actuator",
-        dataType: "String",
-        interface: {
-          display: false,
-          app: "Color picker and brightness slider",
-          voice: true
+        "name": "Smart Light Bulb",
+        "description": "Controls light color and brightness",
+        "dataType": "String",
+        "interface": {
+          "display": false,
+          "app": "Color picker and brightness slider",
+          "voice": true
         },
-        features: [
+        "features": [
           "Schedules",
           "Scenes",
           "Music sync",
@@ -90,25 +294,298 @@ const deviceData: Category[] = [
         ]
       },
       {
-        name: "Smart Thermostat",
-        description: "Controls HVAC settings",
-        type: "actuator",
-        dataType: "Number",
-        unit: "temperature",
-        interface: {
-          display: "LCD",
-          app: true,
-          voice: true
+        "name": "Smart Lock",
+        "description": "Controls lock state",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "Keypad",
+          "app": true,
+          "voice": true
         },
-        features: [
+        "features": [
+          "Access logs",
+          "Temporary access codes",
+          "Integration with doorbell camera"
+        ]
+      },
+      {
+        "name": "Smart Thermostat",
+        "description": "Controls HVAC settings",
+        "dataType": "Number",
+        "unit": "temperature",
+        "interface": {
+          "display": "LCD",
+          "app": true,
+          "voice": true
+        },
+        "features": [
           "Schedules",
           "Geofencing",
           "Energy reports",
           "HVAC maintenance alerts"
+        ]
+      },
+      {
+        "name": "Motorized Blinds Controller",
+        "description": "Controls the position of motorized blinds",
+        "dataType": "Number",
+        "unit": "percentage open",
+        "interface": {
+          "display": "Physical buttons",
+          "app": true,
+          "voice": true
+        },
+        "features": [
+          "Schedules",
+          "Scenes",
+          "Sun tracking"
+        ]
+      },
+      {
+        "name": "Irrigation Controller",
+        "description": "Controls watering schedules for plants",
+        "dataType": "Boolean",
+        "interface": {
+          "display": "LCD",
+          "app": "Zone management and schedules",
+          "voice": false
+        },
+        "features": [
+          "Weather-based watering",
+          "Moisture sensor integration",
+          "Flow meter monitoring"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Wearables and Personal Devices",
+    "devices": [
+      {
+        "name": "Smartwatch",
+        "description": "Provides various health and activity data",
+        "dataType": "Number",
+        "interface": {
+          "display": "Touchscreen",
+          "app": true,
+          "voice": true
+        },
+        "features": [
+          "Notifications",
+          "Music control",
+          "Contactless payments",
+          "Customizable watch faces"
+        ]
+      },
+      {
+        "name": "Smart Belt",
+        "description": "Monitors waist size and sitting time",
+        "dataType": "Number",
+        "unit": "cm, minutes",
+        "interface": {
+          "display": "LED",
+          "app": "Graphs and insights",
+          "voice": false
+        },
+        "features": [
+          "Posture reminders",
+          "Inactivity alerts"
+        ]
+      },
+      {
+        "name": "Smart Shoe Insole",
+        "description": "Tracks walking patterns and foot pressure",
+        "dataType": "Number",
+        "interface": {
+          "display": false,
+          "app": "Pressure map and gait analysis",
+          "voice": false
+        },
+        "features": [
+          "Personalized shoe recommendations",
+          "Running form coaching"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Neuro-Implants and Brain-Computer Interfaces",
+    "devices": [
+      {
+        "name": "Thought Translator",
+        "description": "Translates brain activity into text or speech",
+        "dataType": "String",
+        "interface": {
+          "display": "AR",
+          "app": true,
+          "voice": false
+        },
+        "features": [
+          "Language translation",
+          "Thought-to-text dictation",
+          "Silent communication"
+        ]
+      },
+      {
+        "name": "Emotion Sensor",
+        "description": "Detects and interprets emotional states from brain activity",
+        "dataType": "String",
+        "interface": {
+          "display": false,
+          "app": "Mood dashboard",
+          "voice": false
+        },
+        "features": [
+          "Emotion-based environment control",
+          "Empathy-enhancing VR experiences"
+        ]
+      },
+      {
+        "name": "Memory Augmentation Device",
+        "description": "Records, stores, and plays back memories",
+        "dataType": "String",
+        "interface": {
+          "display": "VR/AR",
+          "app": "Replay interface",
+          "voice": false
+        },
+        "features": [
+          "Memory editing",
+          "Sharing",
+          "Backup"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Nano-Scale Sensors",
+    "devices": [
+      {
+        "name": "Nanobot Swarm Health Monitor",
+        "description": "Microscopic robots monitor various health parameters from inside the body",
+        "dataType": "Number",
+        "interface": {
+          "display": false,
+          "app": "3D body visualization",
+          "voice": false
+        },
+        "features": [
+          "Targeted drug delivery",
+          "Early disease detection"
+        ]
+      },
+      {
+        "name": "Neural Dust Sensor Network",
+        "description": "Tiny, wireless, implantable sensors for monitoring brain activity",
+        "dataType": "Number",
+        "interface": {
+          "display": false,
+          "app": "Real-time brain activity visualization",
+          "voice": false
+        },
+        "features": [
+          "Thought-controlled devices",
+          "Neurological disorder monitoring"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Exotic Material Sensors",
+    "devices": [
+      {
+        "name": "Dark Matter Detector",
+        "description": "Detects and measures dark matter particles",
+        "dataType": "Number",
+        "interface": {
+          "display": "Holographic",
+          "app": "Dark matter map and analytics",
+          "voice": false
+        },
+        "features": [
+          "Gravitational anomaly alerts",
+          "Interdimensional communication attempts"
+        ]
+      },
+      {
+        "name": "Tachyon Flux Sensor",
+        "description": "Measures tachyon particle flux for faster-than-light (FTL) applications",
+        "dataType": "Number",
+        "interface": {
+          "display": "Holographic",
+          "app": "FTL navigation assistant",
+          "voice": false
+        },
+        "features": [
+          "Temporal anomaly detection",
+          "Time dilation monitoring"
+        ]
+      },
+      {
+        "name": "Quantum Entanglement Communicator",
+        "description": "Instant communication device using quantum-entangled particles",
+        "dataType": "String",
+        "interface": {
+          "display": false,
+          "app": "Quantum-secured communication",
+          "voice": "Holographic messaging"
+        },
+        "features": [
+          "Unbreakable encryption",
+          "Multi-dimensional video calls"
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Reality-Altering Devices",
+    "devices": [
+      {
+        "name": "Gravity Manipulator",
+        "description": "Locally alters the strength and direction of gravity",
+        "dataType": "Number",
+        "interface": {
+          "display": false,
+          "app": "Gravity presets and safety controls",
+          "voice": "Gesture control"
+        },
+        "features": [
+          "Levitation",
+          "Gravity-assisted transportation",
+          "Artificial gravity in space"
+        ]
+      },
+      {
+        "name": "Portable Wormhole Generator",
+        "description": "Creates small, stable wormholes for instant transportation",
+        "dataType": "String",
+        "interface": {
+          "display": "Holographic destination selector",
+          "app": "Wormhole network mapping",
+          "voice": false
+        },
+        "features": [
+          "Time travel safeguards",
+          "Exotic matter containment"
+        ]
+      },
+      {
+        "name": "Matter Printer",
+        "description": "Rearranges subatomic particles to create objects from pure energy",
+        "dataType": "String",
+        "interface": {
+          "display": false,
+          "app": "Object library and sharing",
+          "voice": "AI designer"
+        },
+        "features": [
+          "Recycling mode",
+          "Self-repair function",
+          "Exotic material creation"
         ]
       }
     ]
   }
 ];
 
-export default deviceData;
+export const deviceData: Category[] = processDeviceData(rawDeviceData);
