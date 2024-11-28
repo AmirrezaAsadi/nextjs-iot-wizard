@@ -1,57 +1,58 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Home, Users, Settings, Trees } from "lucide-react";
+import deviceData from "./deviceData.json";
+import { Rule, Person, Device, Location, LocationType } from "../types";
+import { LocationManager } from "./LocationManager";
+import { RuleManager } from "./RuleManager";
+import { PeopleManager } from "./PeopleManager";
+import { DeviceManager } from "./DeviceManager";
 
-interface DeviceStatus {
-  thermostat: boolean;
-  lights: boolean;
-  security: boolean;
+interface DeviceState {
+  [key: string]: string | number | boolean;
 }
 
 export default function IoTInterface() {
-  const [temperature, setTemperature] = useState(21);
-  const [lightLevel, setLightLevel] = useState(50);
-  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({
-    thermostat: false,
-    lights: false,
-    security: false
-  });
-  const [occupancy, setOccupancy] = useState(0);
-  const [mood, setMood] = useState("neutral");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [installedDevices, setInstalledDevices] = useState<Device[]>([]);
+  const [activeRules, setActiveRules] = useState<Rule[]>([
+    {
+      name: "Safety Priority",
+      description: "The system should prioritize safety",
+      isActive: true
+    },
+    {
+      name: "Energy Saving",
+      description: "The system should prioritize energy saving",
+      isActive: true
+    }
+  ]);
   const [apiKey, setApiKey] = useState("");
   const [systemResponse, setSystemResponse] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Load API key from localStorage on component mount
-  useEffect(() => {
-    const savedApiKey = localStorage.getItem("openai_api_key");
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
-  }, []);
+  const locationTypes: LocationType[] = ["Residential", "Office", "Retail", "Factory", "Farm"];
 
-  // Save API key to localStorage when it changes
-  const handleApiKeyChange = (newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem("openai_api_key", newKey);
+  const addLocation = (newLocation: Location) => {
+    setLocations([...locations, newLocation]);
   };
 
-  const generateSystemResponse = async () => {
-    if (!apiKey) {
-      setSystemResponse("Please enter an OpenAI API key first.");
-      return;
-    }
+  const addPerson = (newPerson: Person) => {
+    setPeople([...people, newPerson]);
+  };
 
-    setIsLoading(true);
+  const installDevice = (device: Device, location: string) => {
+    const newDevice = { ...device, location };
+    setInstalledDevices([...installedDevices, newDevice]);
+  };
+
+  const generateSystemState = async () => {
+    if (!apiKey) return;
+
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -64,167 +65,102 @@ export default function IoTInterface() {
           messages: [
             {
               role: "system",
-              content: "You are an IoT system assistant that helps manage smart home devices.",
+              content: "You are an IoT system assistant that generates realistic sensor data and device states."
             },
             {
               role: "user",
-              content: `Current system state:
-                Temperature: ${temperature}°C
-                Light Level: ${lightLevel}%
-                Occupancy: ${occupancy}
-                Mood: ${mood}
-                Devices: ${JSON.stringify(deviceStatus)}
-                
-                Please analyze the current state and provide recommendations.`,
-            },
-          ],
-        }),
+              content: `Generate appropriate sensor values and states for the following devices: ${JSON.stringify(installedDevices)}
+                       Consider: Locations: ${JSON.stringify(locations)}
+                       People: ${JSON.stringify(people)}
+                       Active Rules: ${JSON.stringify(activeRules)}`
+            }
+          ]
+        })
       });
 
       const data = await response.json();
+      const parsedStates = JSON.parse(data.choices[0].message.content) as DeviceState;
+      updateDeviceStates(parsedStates);
       setSystemResponse(data.choices[0].message.content);
     } catch (error) {
-      setSystemResponse("Error communicating with OpenAI API. Please check your API key and try again.");
-    } finally {
-      setIsLoading(false);
+      console.error("Error generating system state:", error);
+      setSystemResponse("Error generating system state. Please check your API key and try again.");
     }
+  };
+
+  const updateDeviceStates = (newStates: DeviceState) => {
+    setInstalledDevices(prevDevices => 
+      prevDevices.map(device => ({
+        ...device,
+        currentValue: newStates[device.name]
+      }))
+    );
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>IoT Wizard of Oz Interface</CardTitle>
-        <CardDescription>Control and simulate IoT devices and environmental conditions</CardDescription>
+        <CardTitle>IoT Wizard Interface</CardTitle>
+        <CardDescription>Design and simulate complex IoT environments</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="devices" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="devices" className="flex items-center gap-2">
-              <Home className="w-4 h-4" /> Devices
-            </TabsTrigger>
-            <TabsTrigger value="people" className="flex items-center gap-2">
-              <Users className="w-4 h-4" /> People
-            </TabsTrigger>
-            <TabsTrigger value="environment" className="flex items-center gap-2">
-              <Trees className="w-4 h-4" /> Environment
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" /> Settings
-            </TabsTrigger>
+        <Tabs defaultValue="locations" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="locations">Locations</TabsTrigger>
+            <TabsTrigger value="devices">Devices</TabsTrigger>
+            <TabsTrigger value="people">People</TabsTrigger>
+            <TabsTrigger value="rules">Rules</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="locations">
+            <LocationManager 
+              locations={locations} 
+              onAddLocation={addLocation}
+              locationTypes={locationTypes}
+            />
+          </TabsContent>
+
           <TabsContent value="devices">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="thermostat">Thermostat</Label>
-                <Switch 
-                  id="thermostat" 
-                  checked={deviceStatus.thermostat}
-                  onCheckedChange={(checked) => 
-                    setDeviceStatus(prev => ({...prev, thermostat: checked}))
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="lights">Lights</Label>
-                <Switch 
-                  id="lights"
-                  checked={deviceStatus.lights}
-                  onCheckedChange={(checked) => 
-                    setDeviceStatus(prev => ({...prev, lights: checked}))
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="security">Security System</Label>
-                <Switch 
-                  id="security"
-                  checked={deviceStatus.security}
-                  onCheckedChange={(checked) => 
-                    setDeviceStatus(prev => ({...prev, security: checked}))
-                  }
-                />
-              </div>
-            </div>
+            <DeviceManager
+              deviceCategories={deviceData}
+              locations={locations}
+              installedDevices={installedDevices}
+              onInstallDevice={installDevice}
+            />
           </TabsContent>
 
           <TabsContent value="people">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label>Number of Occupants</Label>
-                <Input 
-                  type="number" 
-                  value={occupancy}
-                  onChange={(e) => setOccupancy(parseInt(e.target.value))}
-                  min={0}
-                  max={10}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Occupant Mood</Label>
-                <select 
-                  className="w-full p-2 border rounded"
-                  value={mood}
-                  onChange={(e) => setMood(e.target.value)}
-                >
-                  <option value="happy">Happy</option>
-                  <option value="neutral">Neutral</option>
-                  <option value="tired">Tired</option>
-                  <option value="active">Active</option>
-                </select>
-              </div>
-            </div>
+            <PeopleManager
+              people={people}
+              onAddPerson={addPerson}
+            />
           </TabsContent>
 
-          <TabsContent value="environment">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label>Temperature (°C)</Label>
-                <Slider
-                  value={[temperature]}
-                  onValueChange={([value]) => setTemperature(value)}
-                  max={30}
-                  min={16}
-                  step={1}
-                />
-                <div className="text-right">{temperature}°C</div>
-              </div>
-              <div className="space-y-2">
-                <Label>Light Level (%)</Label>
-                <Slider
-                  value={[lightLevel]}
-                  onValueChange={([value]) => setLightLevel(value)}
-                  max={100}
-                  min={0}
-                  step={1}
-                />
-                <div className="text-right">{lightLevel}%</div>
-              </div>
-            </div>
+          <TabsContent value="rules">
+            <RuleManager
+              rules={activeRules}
+              onUpdateRules={setActiveRules}
+            />
           </TabsContent>
 
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <div className="space-y-2">
+            <div className="space-y-4">
+              <div>
                 <Label>OpenAI API Key</Label>
                 <Input
                   type="password"
                   value={apiKey}
-                  onChange={(e) => handleApiKeyChange(e.target.value)}
+                  onChange={(e) => setApiKey(e.target.value)}
                   placeholder="Enter your OpenAI API key"
                 />
               </div>
-              <Button 
-                onClick={generateSystemResponse}
-                disabled={isLoading}
-              >
-                {isLoading ? "Analyzing..." : "Analyze System State"}
+              <Button onClick={generateSystemState}>
+                Generate System State
               </Button>
               {systemResponse && (
                 <Alert>
-                  <AlertDescription>
-                    {systemResponse}
-                  </AlertDescription>
+                  <AlertDescription>{systemResponse}</AlertDescription>
                 </Alert>
               )}
             </div>
