@@ -13,6 +13,7 @@ import { LocationManager } from "./LocationManager";
 import { RuleManager } from "./RuleManager";
 import { PeopleManager } from "./PeopleManager";
 import { DeviceManager } from "./DeviceManager";
+import { EventsManager } from "./EventsManager";
 
 type DeviceStateValue = string | number | boolean;
 type DeviceStates = Record<string, DeviceStateValue>;
@@ -20,6 +21,7 @@ type DeviceStates = Record<string, DeviceStateValue>;
 export default function IoTInterface() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
+
   const [installedDevices, setInstalledDevices] = useState<Device[]>([]);
   const [activeRules, setActiveRules] = useState<Rule[]>([
     {
@@ -150,6 +152,9 @@ export default function IoTInterface() {
             <TabsTrigger value="devices">Devices</TabsTrigger>
             <TabsTrigger value="people">People</TabsTrigger>
             <TabsTrigger value="rules">Rules</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
+
+
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -184,6 +189,17 @@ export default function IoTInterface() {
               onUpdateRules={setActiveRules}
             />
           </TabsContent>
+          
+
+          <TabsContent value="events">
+  <EventsManager
+    devices={installedDevices}
+    people={people}
+    rules={activeRules}
+    locations={locations}
+    apiKey={apiKey}
+  />
+</TabsContent>
 
           <TabsContent value="settings">
             <div className="space-y-4">
