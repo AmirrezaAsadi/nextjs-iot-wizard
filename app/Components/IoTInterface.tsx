@@ -1,7 +1,6 @@
-// app/components/IoTInterface.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,18 +8,87 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Home, Users, Settings, Trees } from "lucide-react";
+
+interface DeviceStatus {
+  thermostat: boolean;
+  lights: boolean;
+  security: boolean;
+}
 
 export default function IoTInterface() {
   const [temperature, setTemperature] = useState(21);
   const [lightLevel, setLightLevel] = useState(50);
-  const [deviceStatus, setDeviceStatus] = useState({
+  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus>({
     thermostat: false,
     lights: false,
     security: false
   });
   const [occupancy, setOccupancy] = useState(0);
   const [mood, setMood] = useState("neutral");
+  const [apiKey, setApiKey] = useState("");
+  const [systemResponse, setSystemResponse] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load API key from localStorage on component mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem("openai_api_key");
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
+
+  // Save API key to localStorage when it changes
+  const handleApiKeyChange = (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem("openai_api_key", newKey);
+  };
+
+  const generateSystemResponse = async () => {
+    if (!apiKey) {
+      setSystemResponse("Please enter an OpenAI API key first.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: "You are an IoT system assistant that helps manage smart home devices.",
+            },
+            {
+              role: "user",
+              content: `Current system state:
+                Temperature: ${temperature}°C
+                Light Level: ${lightLevel}%
+                Occupancy: ${occupancy}
+                Mood: ${mood}
+                Devices: ${JSON.stringify(deviceStatus)}
+                
+                Please analyze the current state and provide recommendations.`,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      setSystemResponse(data.choices[0].message.content);
+    } catch (error) {
+      setSystemResponse("Error communicating with OpenAI API. Please check your API key and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -138,18 +206,27 @@ export default function IoTInterface() {
           <TabsContent value="settings">
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label>LLM Response Delay (ms)</Label>
-                <Input type="number" placeholder="1000" />
+                <Label>OpenAI API Key</Label>
+                <Input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => handleApiKeyChange(e.target.value)}
+                  placeholder="Enter your OpenAI API key"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>System Mode</Label>
-                <select className="w-full p-2 border rounded">
-                  <option value="automatic">Automatic</option>
-                  <option value="manual">Manual</option>
-                  <option value="learning">Learning</option>
-                </select>
-              </div>
-              <Button>Save Settings</Button>
+              <Button 
+                onClick={generateSystemResponse}
+                disabled={isLoading}
+              >
+                {isLoading ? "Analyzing..." : "Analyze System State"}
+              </Button>
+              {systemResponse && (
+                <Alert>
+                  <AlertDescription>
+                    {systemResponse}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </TabsContent>
         </Tabs>
