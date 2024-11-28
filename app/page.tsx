@@ -1,5 +1,4 @@
 // app/page.tsx
-import Image from "next/image";
 import IoTInterface from "./Components/IoTInterface";
 
 export default function Home() {

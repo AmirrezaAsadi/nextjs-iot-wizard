@@ -1,20 +1,24 @@
 // types.ts
 
+export type DeviceType = "sensor" | "actuator";
+
 export interface Device {
-    name: string;
-    description: string;
-    dataType: string;
-    unit?: string;
-    interface: {
-      display: string | boolean;
-      app: string | boolean;
-      voice: string | boolean;
-    };
-    features: string[];
-    location?: string;
-    currentValue?: unknown;
-    category?: string;
-  }
+  name: string;
+  description: string;
+  type: DeviceType;
+  dataType: string;
+  unit?: string;
+  interface: {
+    display: string | boolean;
+    app: string | boolean;
+    voice: string | boolean;
+  };
+  features: string[];
+  location?: string;
+  currentValue?: unknown;
+  category?: string;
+  isCustom?: boolean;
+}
   
   export interface Category {
     category: string;

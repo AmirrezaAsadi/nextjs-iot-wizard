@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import deviceData from "./deviceData.json";
+import deviceData from "./deviceData";
 import { Rule, Person, Device, Location, LocationType } from "../types";
 import { LocationManager } from "./LocationManager";
 import { RuleManager } from "./RuleManager";
@@ -50,6 +50,13 @@ export default function IoTInterface() {
   const installDevice = (device: Device, location: string) => {
     const newDevice = { ...device, location };
     setInstalledDevices([...installedDevices, newDevice]);
+  };
+  const removeDevice = (deviceToRemove: Device) => {
+    setInstalledDevices(prevDevices => 
+      prevDevices.filter(device => 
+        !(device.name === deviceToRemove.name && device.location === deviceToRemove.location)
+      )
+    );
   };
 
   const generateSystemState = async () => {
@@ -124,12 +131,13 @@ export default function IoTInterface() {
           </TabsContent>
 
           <TabsContent value="devices">
-            <DeviceManager
-              deviceCategories={deviceData}
-              locations={locations}
-              installedDevices={installedDevices}
-              onInstallDevice={installDevice}
-            />
+          <DeviceManager
+  deviceCategories={deviceData}
+  locations={locations}
+  installedDevices={installedDevices}
+  onInstallDevice={installDevice}
+  onRemoveDevice={removeDevice}
+/>
           </TabsContent>
 
           <TabsContent value="people">
