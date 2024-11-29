@@ -11,6 +11,25 @@ interface EventsManagerProps {
   apiKey: string;
 }
 
+// Type guard to validate SystemEvent structure
+function isValidSystemEvent(event: unknown): event is SystemEvent {
+  if (!event || typeof event !== 'object') return false;
+  
+  const eventObj = event as Partial<SystemEvent>;
+  return (
+    typeof eventObj.deviceName === 'string' &&
+    typeof eventObj.event === 'string' &&
+    typeof eventObj.location === 'string' &&
+    typeof eventObj.timestamp === 'string' &&
+    (!('value' in eventObj) || typeof eventObj.value === 'number' || typeof eventObj.value === 'string') &&
+    !Number.isNaN(new Date(eventObj.timestamp).getTime())
+  );
+}
+
+function isValidEventArray(events: unknown): events is SystemEvent[] {
+  return Array.isArray(events) && events.every(isValidSystemEvent);
+}
+
 export function EventsManager({ devices, people, rules, locations, apiKey }: EventsManagerProps) {
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -68,8 +87,20 @@ export function EventsManager({ devices, people, rules, locations, apiKey }: Eve
       }
 
       const data = await response.json();
-      const newEvents = JSON.parse(data.choices[0].message.content);
-      setEvents(prev => [...prev, ...newEvents]
+      let parsedEvents: unknown;
+      
+      try {
+        parsedEvents = JSON.parse(data.choices[0].message.content);
+      } catch {
+        throw new Error('Invalid JSON response from API');
+      }
+
+      // Validate the parsed events
+      if (!isValidEventArray(parsedEvents)) {
+        throw new Error('API returned invalid event data structure');
+      }
+
+      setEvents(prev => [...prev, ...parsedEvents]
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
         .slice(-50) // Keep last 50 events
       );
@@ -81,12 +112,23 @@ export function EventsManager({ devices, people, rules, locations, apiKey }: Eve
   }, [apiKey, devices, people, rules, locations]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isSimulating) {
+    let timeoutId: NodeJS.Timeout | undefined;
+    
+    const runSimulation = () => {
       generateEvents();
-      interval = setInterval(generateEvents, 60000);
+      // Schedule next run using setTimeout instead of setInterval for better error handling
+      timeoutId = setTimeout(runSimulation, 60000);
+    };
+
+    if (isSimulating) {
+      runSimulation();
     }
-    return () => clearInterval(interval);
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [isSimulating, generateEvents]);
 
   return (
@@ -103,7 +145,7 @@ export function EventsManager({ devices, people, rules, locations, apiKey }: Eve
       </div>
 
       {error && (
-        <p className="text-red-500 text-sm">{error}</p>
+        <p className="text-red-500 text-sm" role="alert">{error}</p>
       )}
 
       <div className="space-y-2 max-h-[600px] overflow-y-auto">
@@ -111,7 +153,7 @@ export function EventsManager({ devices, people, rules, locations, apiKey }: Eve
           <p className="text-gray-500">No events generated yet</p>
         ) : (
           events.map((event, index) => (
-            <Card key={index}>
+            <Card key={`${event.timestamp}-${index}`}>
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
