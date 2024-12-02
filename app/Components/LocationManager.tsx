@@ -48,12 +48,12 @@ export function LocationManager({ locations, onAddLocation, locationTypes }: Loc
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label htmlFor="locationName">Location Name</Label>
+          <Label htmlFor="locationName">Location Info</Label>
           <Input
             id="locationName"
             value={newLocation.name}
             onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
-            placeholder="Enter location name"
+            placeholder="Describe  location such as  building name, city , size , country, etc"
             required
           />
         </div>

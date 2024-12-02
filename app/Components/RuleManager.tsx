@@ -56,7 +56,7 @@ interface RuleManagerProps {
             <Input
               value={newRule.name}
               onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
-              placeholder="Enter rule name"
+              placeholder="Enter rule name: Rules can be the rules the IOT system should follow or the rules governing the system environment such as pollution, events, etc"
               required
             />
           </div>
