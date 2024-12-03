@@ -147,7 +147,7 @@ export default function IoTInterface() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="locations" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="locations">Locations</TabsTrigger>
             <TabsTrigger value="devices">Devices</TabsTrigger>
             <TabsTrigger value="people">People</TabsTrigger>
