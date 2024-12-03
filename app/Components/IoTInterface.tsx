@@ -192,13 +192,14 @@ export default function IoTInterface() {
           
 
           <TabsContent value="events">
-  <EventsManager
-    devices={installedDevices}
-    people={people}
-    rules={activeRules}
-    locations={locations}
-    apiKey={apiKey}
-  />
+          <EventsManager
+  devices={installedDevices}
+  people={people}
+  rules={activeRules}
+  locations={locations}
+  apiKey={apiKey}
+  onUpdateDevices={setInstalledDevices}  // Add this line
+/>
 </TabsContent>
 
           <TabsContent value="settings">
