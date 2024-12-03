@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Device, Person, Rule, SystemEvent, Location } from "../types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EventsManagerProps {
   devices: Device[];
@@ -16,19 +17,6 @@ interface EventsManagerProps {
 
 type Season = 'winter' | 'spring' | 'summer' | 'autumn';
 type TimeOfDay = 'night' | 'morning' | 'afternoon' | 'evening';
-
-interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-interface APIEvent {
-  timestamp: string;
-  deviceName: string;
-  location: string;
-  event: string;
-  value?: number | string | boolean;
-}
 
 interface TemperatureRange {
   day: [number, number];
@@ -51,6 +39,27 @@ interface LocationStory {
 interface StoryState {
   overview: string;
   locationStories: Record<string, LocationStory>;
+}
+
+interface DeviceState {
+  deviceName: string;
+  timestamp: Date;
+  location: string;
+  value: number | string | boolean;
+  status: string;
+}
+
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+interface ChatResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
 }
 
 function getEnvironmentalContext(): EnvironmentalContext {
@@ -81,7 +90,7 @@ function getEnvironmentalContext(): EnvironmentalContext {
   };
 }
 
-async function makeRequest(apiKey: string, messages: ChatMessage[]) {
+async function makeRequest(apiKey: string, messages: ChatMessage[]): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -99,7 +108,7 @@ async function makeRequest(apiKey: string, messages: ChatMessage[]) {
     throw new Error(`API error: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as ChatResponse;
   return data.choices[0].message.content;
 }
 
@@ -146,6 +155,38 @@ async function generateLocationStory(
   };
 }
 
+async function generateDeviceStates(
+  devices: Device[],
+  context: EnvironmentalContext
+): Promise<DeviceState[]> {
+  const now = new Date();
+  return devices.map(device => {
+    let value: number | string | boolean;
+    
+    if (device.type === "sensor" && device.features.includes("temperature")) {
+      const range = context.baseTemperature[context.season][context.isDaytime ? 'day' : 'night'];
+      const baseTemp = (range[0] + range[1]) / 2;
+      value = device.location?.toLowerCase().includes("indoor")
+        ? Math.min(baseTemp + 5, 24)
+        : baseTemp + (Math.random() * 2 - 1);
+    } else if (device.type === "sensor" && device.features.includes("motion")) {
+      value = Math.random() > 0.7;
+    } else if (device.type === "actuator" && device.features.includes("switch")) {
+      value = !context.isDaytime || Math.random() > 0.5;
+    } else {
+      value = device.currentValue ?? false;
+    }
+
+    return {
+      deviceName: device.name,
+      timestamp: now,
+      location: device.location || 'unspecified',
+      value,
+      status: 'active'
+    };
+  });
+}
+
 async function generateSystemStories(
   devices: Device[],
   people: Person[],
@@ -155,7 +196,6 @@ async function generateSystemStories(
 ): Promise<StoryState> {
   const context = getEnvironmentalContext();
   
-  // Group devices and people by location
   const devicesByLocation = devices.reduce((acc, device) => {
     const location = device.location || 'unspecified';
     if (!acc[location]) acc[location] = [];
@@ -170,7 +210,6 @@ async function generateSystemStories(
     return acc;
   }, {} as Record<string, Person[]>);
 
-  // Generate system overview
   const overview = await makeRequest(apiKey, [{
     role: "system",
     content: `Provide a brief system overview:
@@ -182,7 +221,6 @@ async function generateSystemStories(
       Respond with 2-3 sentences only.`
   }]);
 
-  // Generate stories for each location
   const locationStories: Record<string, LocationStory> = {};
   for (const location of locations) {
     locationStories[location.name] = await generateLocationStory(
@@ -223,12 +261,20 @@ async function generateEvents(
       - value: optional, matching device type`
   }]);
 
-  const parsedEvents = JSON.parse(content) as APIEvent[];
-  return parsedEvents.map((event) => ({
+  const parsedEvents = JSON.parse(content) as Array<{
+    timestamp: string;
+    deviceName: string;
+    location: string;
+    event: string;
+    value?: number | string | boolean;
+  }>;
+
+  return parsedEvents.map(event => ({
     ...event,
     timestamp: new Date(event.timestamp)
   }));
 }
+
 export function EventsManager({ 
   devices, 
   people, 
@@ -238,6 +284,7 @@ export function EventsManager({
   onUpdateDevices 
 }: EventsManagerProps) {
   const [events, setEvents] = useState<SystemEvent[]>([]);
+  const [deviceStates, setDeviceStates] = useState<DeviceState[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stories, setStories] = useState<StoryState | null>(null);
@@ -249,26 +296,29 @@ export function EventsManager({
     }
 
     try {
-      // Generate stories first
+      const context = getEnvironmentalContext();
+      
+      // Generate stories
       const newStories = await generateSystemStories(devices, people, rules, locations, apiKey);
       setStories(newStories);
 
-      // Generate events based on stories
+      // Generate device states
+      const newDeviceStates = await generateDeviceStates(devices, context);
+      setDeviceStates(prevStates => [...prevStates, ...newDeviceStates].slice(-50));
+
+      // Generate events based on stories and device states
       const newEvents = await generateEvents(devices, newStories, apiKey);
-      
-      // Update events list
       const updatedEvents = [...events, ...newEvents]
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         .slice(-50);
-
       setEvents(updatedEvents);
 
-      // Update device states
+      // Update device states in parent component
       if (onUpdateDevices) {
         const updatedDevices = devices.map(device => {
-          const relevantEvent = newEvents.find(e => e.deviceName === device.name);
-          if (relevantEvent?.value !== undefined) {
-            return { ...device, currentValue: relevantEvent.value };
+          const latestState = newDeviceStates.find(state => state.deviceName === device.name);
+          if (latestState?.value !== undefined) {
+            return { ...device, currentValue: latestState.value };
           }
           return device;
         });
@@ -357,30 +407,57 @@ export function EventsManager({
         </Accordion>
       )}
 
-      <div className="space-y-2 max-h-[600px] overflow-y-auto">
-        {events.length === 0 ? (
-          <p className="text-gray-500">No events generated yet</p>
-        ) : (
-          events.map((event, index) => (
-            <Card key={`${event.timestamp.getTime()}-${index}`}>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{event.deviceName}</p>
-                    <p className="text-sm text-gray-600">{event.event}</p>
-                    {event.value !== undefined && (
-                      <p className="text-sm">Value: {event.value}</p>
-                    )}
-                    <p className="text-sm text-gray-500">Location: {event.location}</p>
-                  </div>
-                  <time className="text-sm text-gray-500">
-                    {event.timestamp.toLocaleString()}
-                  </time>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <h4 className="text-md font-semibold mb-2">Device States</h4>
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-2">
+              {deviceStates.map((state, index) => (
+                <Card key={`${state.timestamp.getTime()}-${index}`}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{state.deviceName}</p>
+                        <p className="text-sm">Value: {String(state.value)}</p>
+                        <p className="text-sm text-gray-500">Location: {state.location}</p>
+                      </div>
+                      <time className="text-sm text-gray-500">
+                        {state.timestamp.toLocaleString()}
+                      </time>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+
+        <div>
+        <h4 className="text-md font-semibold mb-2">Events</h4>
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-2">
+              {events.map((event, index) => (
+                <Card key={`${event.timestamp.getTime()}-${index}`}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{event.deviceName}</p>
+                        <p className="text-sm text-gray-600">{event.event}</p>
+                        {event.value !== undefined && (
+                          <p className="text-sm">Value: {event.value}</p>
+                        )}
+                        <p className="text-sm text-gray-500">Location: {event.location}</p>
+                      </div>
+                      <time className="text-sm text-gray-500">
+                        {event.timestamp.toLocaleString()}
+                      </time>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
     </div>
   );
