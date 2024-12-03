@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Settings } from "lucide-react";
 import { deviceData } from "./deviceData";
 import { Rule, Person, Device, Location, LocationType } from "../types";
 import { LocationManager } from "./LocationManager";
@@ -19,9 +20,10 @@ type DeviceStateValue = string | number | boolean;
 type DeviceStates = Record<string, DeviceStateValue>;
 
 export default function IoTInterface() {
+  const [apiKey, setApiKey] = useState("");
+  const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
-
   const [installedDevices, setInstalledDevices] = useState<Device[]>([]);
   const [activeRules, setActiveRules] = useState<Rule[]>([
     {
@@ -35,11 +37,14 @@ export default function IoTInterface() {
       isActive: true
     }
   ]);
-  const [apiKey, setApiKey] = useState("");
   const [systemResponse, setSystemResponse] = useState("");
-
   const locationTypes: LocationType[] = ["Residential", "Office", "Retail", "Factory", "Farm"];
 
+  const handleApiKeySubmit = () => {
+    if (apiKey.trim().length > 0) {
+      setIsApiKeySet(true);
+    }
+  };
 
   const addLocation = (newLocation: Location) => {
     setLocations([...locations, newLocation]);
@@ -63,11 +68,6 @@ export default function IoTInterface() {
   };
 
   const generateSystemState = async () => {
-    if (!apiKey) {
-      setSystemResponse("Please enter an OpenAI API key first.");
-      return;
-    }
-
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -111,17 +111,10 @@ export default function IoTInterface() {
         throw new Error("Invalid response format from API");
       }
 
-      try {
-        const content = data.choices[0].message.content.trim();
-        console.log("API Response:", content);
-        
-        const parsedStates = JSON.parse(content) as DeviceStates;
-        updateDeviceStates(parsedStates);
-        setSystemResponse("Successfully updated device states");
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
-        setSystemResponse("Error: Could not parse the response from OpenAI. Response format was invalid.");
-      }
+      const content = data.choices[0].message.content.trim();
+      const parsedStates = JSON.parse(content) as DeviceStates;
+      updateDeviceStates(parsedStates);
+      setSystemResponse("Successfully updated device states");
     } catch (error) {
       console.error("API Error:", error);
       setSystemResponse(`Error: ${error instanceof Error ? error.message : "Failed to generate system state"}`);
@@ -139,6 +132,31 @@ export default function IoTInterface() {
     );
   };
 
+  if (!isApiKeySet) {
+    return (
+      <Card className="w-full max-w-md mx-auto mt-8">
+        <CardHeader>
+          <CardTitle>Welcome to IoT Wizard</CardTitle>
+          <CardDescription>Please enter your OpenAI API key to continue</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>OpenAI API Key</Label>
+            <Input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your OpenAI API key"
+            />
+          </div>
+          <Button onClick={handleApiKeySubmit} className="w-full">
+            Continue
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -153,9 +171,9 @@ export default function IoTInterface() {
             <TabsTrigger value="people">People</TabsTrigger>
             <TabsTrigger value="rules">Rules</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
-
-
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="locations">
@@ -167,13 +185,13 @@ export default function IoTInterface() {
           </TabsContent>
 
           <TabsContent value="devices">
-          <DeviceManager
-      deviceCategories={deviceData}
-      locations={locations}
-      installedDevices={installedDevices}
-      onInstallDevice={installDevice}
-      onRemoveDevice={removeDevice}
-    />
+            <DeviceManager
+              deviceCategories={deviceData}
+              locations={locations}
+              installedDevices={installedDevices}
+              onInstallDevice={installDevice}
+              onRemoveDevice={removeDevice}
+            />
           </TabsContent>
 
           <TabsContent value="people">
@@ -189,18 +207,17 @@ export default function IoTInterface() {
               onUpdateRules={setActiveRules}
             />
           </TabsContent>
-          
 
           <TabsContent value="events">
-          <EventsManager
-  devices={installedDevices}
-  people={people}
-  rules={activeRules}
-  locations={locations}
-  apiKey={apiKey}
-  onUpdateDevices={setInstalledDevices}  // Add this line
-/>
-</TabsContent>
+            <EventsManager
+              devices={installedDevices}
+              people={people}
+              rules={activeRules}
+              locations={locations}
+              apiKey={apiKey}
+              onUpdateDevices={setInstalledDevices}
+            />
+          </TabsContent>
 
           <TabsContent value="settings">
             <div className="space-y-4">
@@ -210,7 +227,7 @@ export default function IoTInterface() {
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your OpenAI API key"
+                  placeholder="Update your OpenAI API key"
                 />
               </div>
               <Button onClick={generateSystemState}>
