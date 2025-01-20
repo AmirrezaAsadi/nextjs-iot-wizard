@@ -352,6 +352,7 @@ export function EventsManager({
 
   return (
     <div className="space-y-4">
+      <div> This tab simulates the  events in your defined scenario</div>
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">System Timeline</h3>
         <Button
