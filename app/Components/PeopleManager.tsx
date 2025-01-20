@@ -109,9 +109,9 @@ export function PeopleManager({ people, onAddPerson }: PeopleManagerProps) {
 
       {/* Add New Person Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
+      <Label>Create the  people who are part of your scenario for system design</Label>
         <div className="space-y-4">
           <div>
-            <Label>Create the  people who are part of your scenario for system design</Label>
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
