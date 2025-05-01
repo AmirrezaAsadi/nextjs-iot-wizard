@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wizard of LLMs
 
-## Getting Started
+## IoT Prototyping with Large Language Models
 
-First, run the development server:
+A web application using GPT-4o to simulate IoT systems without physical hardware, enabling rapid prototyping through the Wizard of Oz technique.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Authors
+- Amir Reza Asadi (University of Cincinnati)
+- Lily Edinam Botsyoe (University of Cincinnati)
+- Jess Kropczynski (University of Cincinnati)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Features
+- Define locations, devices, people, and rules
+- Generate simulated IoT scenarios and events
+- Test interactions without hardware
+- Explore design ideas in early stages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Technology
+- Web-based tool (NextJS/React)
+- Three-layer prompting framework
+- OpenAI GPT-4o API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Getting Started
+1. Clone repository
+2. `npm install`
+3. Configure OpenAI API key
+4. `npm run dev`
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Paper
+Published at ACM Creativity & Cognition Conference 2025
