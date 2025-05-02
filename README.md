@@ -18,7 +18,7 @@ A web application using GPT-4o to simulate IoT systems without physical hardware
 ### Technology
 - Web-based tool (NextJS/React)
 - Three-layer prompting framework
-- OpenAI GPT-4o API
+- OpenAI GPT-4 API
 
 ### Getting Started
 1. Clone repository
