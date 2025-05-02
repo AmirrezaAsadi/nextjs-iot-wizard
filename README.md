@@ -2,7 +2,7 @@
 
 ## IoT Prototyping with Large Language Models
 
-A web application using GPT-4o to simulate IoT systems without physical hardware, enabling rapid prototyping through the Wizard of Oz technique.
+A web application using GPT-4 to simulate IoT systems without physical hardware, enabling rapid prototyping through the Wizard of Oz technique.
 
 ### Authors
 - Amir Reza Asadi (University of Cincinnati)
