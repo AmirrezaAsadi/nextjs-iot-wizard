@@ -28,3 +28,4 @@ A web application using GPT-4 to simulate IoT systems without physical hardware,
 
 ### Paper
 Published at ACM Creativity & Cognition Conference 2025
+https://dl.acm.org/doi/pdf/10.1145/3698061.3734406
